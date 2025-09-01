@@ -1,0 +1,6 @@
+Doku:
+Einloggen in MariaDB:		mysql -u joel -p
+Datenbank auswählen:		USE siwacom_lager;
+Tabellen anzeigen:		SHOW TABLES;
+jeweilige Tabelle anzeigen:	SELECT * FROM ......;
+

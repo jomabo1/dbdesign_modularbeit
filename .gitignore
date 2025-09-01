@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+# Virtualenv
+venv/
+ENV/
+.venv/
+
+# OS/Editor
+.DS_Store
+*.swp
+*.swo
+
+# Dumps/Backups
+*.sql
+*.bak
