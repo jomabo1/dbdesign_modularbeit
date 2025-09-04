@@ -188,10 +188,10 @@ def main_menu():
         print("1. Alle Produkte anzeigen")
         print("2. Produkt suchen")
         print("3. Produkt hinzufügen")
-        print("4. Verkauf erfassen (Rechnung)")
-        print("5. Rechnungen anzeigen")
+        print("4. Neue Rechnung erfassen")
+        print("5. Bestehende Rechnungen anzeigen")
         print("6. Kunden anzeigen")
-        print("7. Kundenstatistik anzeigen")
+        print("7. Verkaufsstatistik anzeigen")
         print("0. Beenden")
 
         choice = input("Auswahl: ")
