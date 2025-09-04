@@ -152,6 +152,73 @@ def show_customers():
         print(f"[{cust['customer_id']}] {cust['name']} – {cust['email']}")
     print()
 
+def show_sales_statistics():
+    while True:
+        print("\n=== Verkaufsstatistik anzeigen ===")
+        print("1. Heute")
+        print("2. Total")
+        print("3. Kundenstatistik")
+        print("0. Zurück")
+
+        choice = input("Auswahl: ")
+
+        if choice == "1":
+            show_sales_today()
+            input("Enter drücken, um zurückzukehren...")
+        elif choice == "2":
+            show_sales_total()
+            input("Enter drücken, um zurückzukehren...")
+        elif choice == "3":
+            show_customer_stats()
+            input("Enter drücken, um zurückzukehren...")
+        elif choice == "0":
+            break
+        else:
+            print("Ungültige Eingabe.")
+
+def show_sales_today():
+    print("\nVerkäufe heute:\n")
+    query = """
+        SELECT 
+            SUM(si.quantity) AS menge,
+            SUM(si.quantity * si.sale_price) AS umsatz,
+            SUM(si.quantity * (si.sale_price - p.purchase_price)) AS gewinn
+        FROM sales s
+        JOIN sale_items si ON s.sale_id = si.sale_id
+        JOIN products p ON si.product_id = p.product_id
+        WHERE DATE(s.date) = CURDATE()
+    """
+    cursor.execute(query)
+    result = cursor.fetchone()
+    menge = result['menge'] or 0
+    umsatz = result['umsatz'] or 0
+    gewinn = result['gewinn'] or 0
+    print(f"Verkaufte Artikel (heute): {menge}")
+    print(f"Umsatz (heute): CHF {umsatz:.2f}")
+    print(f"Gewinn (heute): CHF {gewinn:.2f}")
+
+
+def show_sales_total():
+    print("\nVerkäufe Total:\n")
+    query = """
+        SELECT 
+            SUM(si.quantity) AS menge,
+            SUM(si.quantity * si.sale_price) AS umsatz,
+            SUM(si.quantity * (si.sale_price - p.purchase_price)) AS gewinn
+        FROM sales s
+        JOIN sale_items si ON s.sale_id = si.sale_id
+        JOIN products p ON si.product_id = p.product_id
+    """
+    cursor.execute(query)
+    result = cursor.fetchone()
+    menge = result['menge'] or 0
+    umsatz = result['umsatz'] or 0
+    gewinn = result['gewinn'] or 0
+    print(f"Verkaufte Artikel (gesamt): {menge}")
+    print(f"Gesamtumsatz: CHF {umsatz:.2f}")
+    print(f"Gesamtgewinn: CHF {gewinn:.2f}")
+
+
 def show_customer_stats():
     print("\nKundenstatistik:\n")
 
@@ -191,7 +258,7 @@ def main_menu():
         print("4. Neue Rechnung erfassen")
         print("5. Bestehende Rechnungen anzeigen")
         print("6. Kunden anzeigen")
-        print("7. Verkaufsstatistik anzeigen")
+        print("7. Statistiken anzeigen")
         print("0. Beenden")
 
         choice = input("Auswahl: ")
@@ -214,7 +281,7 @@ def main_menu():
             show_customers()
             input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "7":
-            show_customer_stats()
+            show_sales_statistics()
             input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "0":
             print("Programm beendet.")
