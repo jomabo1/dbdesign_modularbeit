@@ -1,7 +1,7 @@
 import mysql.connector
 from datetime import datetime
 
-# Datenbankverbindung 
+# Datenbankverbindung
 conn = mysql.connector.connect(
     host="localhost",
     user="joel",
@@ -18,17 +18,17 @@ def show_products():
         ORDER BY p.product_id
     """)
     rows = cursor.fetchall()
-    print("\n Produkte im Lager:")
+    print("\nProdukte im Lager:")
     for row in rows:
-        print(f"  [{row['product_id']}] {row['name']} ({row['category']}) - CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
+        print(f"[{row['product_id']}] {row['name']} ({row['category']}) - CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
     print()
 
 def search_product():
-    print("\n🔎 Produkt suchen")
+    print("\nProdukt suchen")
     keyword = input("Suchbegriff eingeben (Name oder Beschreibung): ").strip()
 
     if not keyword:
-        print(" Kein Suchbegriff eingegeben.")
+        print("Kein Suchbegriff eingegeben.")
         return
 
     query = """
@@ -40,17 +40,16 @@ def search_product():
         WHERE p.name LIKE %s OR p.description LIKE %s
         ORDER BY p.product_id
     """
-
     search_term = f"%{keyword}%"
     cursor.execute(query, (search_term, search_term))
     results = cursor.fetchall()
 
     if results:
-        print(f"\n Gefundene Produkte mit '{keyword}':\n")
+        print(f"\nGefundene Produkte mit '{keyword}':\n")
         for row in results:
             print(f"[{row['product_id']}] {row['name']} ({row['category']} | {row['supplier']})")
-            print(f"     Lager: {row['quantity']} |  CHF {row['sale_price']:.2f}")
-            print(f"     {row['description']}\n")
+            print(f"    Lager: {row['quantity']} | CHF {row['sale_price']:.2f}")
+            print(f"    Beschreibung: {row['description']}\n")
     else:
         print("Keine passenden Produkte gefunden.")
 
@@ -61,18 +60,16 @@ def add_product():
     sale_price = float(input("Verkaufspreis (CHF): "))
     quantity = int(input("Anfangsbestand: "))
 
-    # Kategorien anzeigen
     print("\nVerfügbare Kategorien:")
     cursor.execute("SELECT category_id, name FROM categories ORDER BY category_id")
     for cat in cursor.fetchall():
-        print(f"  [{cat['category_id']}] {cat['name']}")
+        print(f"[{cat['category_id']}] {cat['name']}")
     category_id = int(input("Kategorie-ID auswählen: "))
 
-    # Lieferanten anzeigen
-    print("\n Verfügbare Lieferanten:")
+    print("\nVerfügbare Lieferanten:")
     cursor.execute("SELECT supplier_id, name FROM suppliers ORDER BY supplier_id")
     for sup in cursor.fetchall():
-        print(f"  [{sup['supplier_id']}] {sup['name']}")
+        print(f"[{sup['supplier_id']}] {sup['name']}")
     supplier_id = int(input("Lieferanten-ID auswählen: "))
 
     warranty = int(input("Garantie (Monate): "))
@@ -85,12 +82,27 @@ def add_product():
     print("Produkt hinzugefügt.\n")
 
 def create_sale():
-    customer_name = input("Kundenname: ")
-    customer_email = input("Kunden-E-Mail: ")
-    cursor.execute("INSERT INTO sales (customer_name, customer_email) VALUES (%s, %s)", (customer_name, customer_email))
+    print("\nKundenverwaltung")
+    email = input("Kunden-E-Mail eingeben: ").strip()
+
+    cursor.execute("SELECT customer_id, name FROM customers WHERE email = %s", (email,))
+    customer = cursor.fetchone()
+
+    if customer:
+        customer_id = customer["customer_id"]
+        print(f"Kunde gefunden: {customer['name']} (ID: {customer_id})")
+    else:
+        print("Neuer Kunde")
+        name = input("Name des Kunden: ").strip()
+        cursor.execute("INSERT INTO customers (name, email) VALUES (%s, %s)", (name, email))
+        conn.commit()
+        customer_id = cursor.lastrowid
+        print(f"Kunde '{name}' hinzugefügt (ID: {customer_id})")
+
+    cursor.execute("INSERT INTO sales (customer_id) VALUES (%s)", (customer_id,))
     conn.commit()
     sale_id = cursor.lastrowid
-    print(f"\n🧾 Neue Rechnung ID: {sale_id}\n")
+    print(f"Neue Rechnung ID: {sale_id}\n")
 
     while True:
         show_products()
@@ -104,7 +116,7 @@ def create_sale():
             print("Produkt nicht gefunden.")
             continue
         if result["quantity"] < quantity:
-            print("Nicht genügend Bestand!")
+            print("Nicht genügend Bestand.")
             continue
 
         sale_price = result["sale_price"]
@@ -121,7 +133,9 @@ def show_sales():
     sales = cursor.fetchall()
     print("\nRechnungen:")
     for sale in sales:
-        print(f"\nRechnung ID: {sale['sale_id']}, Kunde: {sale['customer_name']}, Datum: {sale['date']}")
+        cursor.execute("SELECT name, email FROM customers WHERE customer_id = %s", (sale["customer_id"],))
+        customer = cursor.fetchone()
+        print(f"Rechnung ID: {sale['sale_id']}, Kunde: {customer['name']}, Datum: {sale['date']}")
         cursor.execute("""
             SELECT si.quantity, si.sale_price, p.name
             FROM sale_items si
@@ -131,7 +145,30 @@ def show_sales():
         items = cursor.fetchall()
         for item in items:
             print(f"  - {item['quantity']} x {item['name']} à CHF {item['sale_price']:.2f}")
-    print()
+        print()
+
+def show_customer_stats():
+    print("\nKundenstatistik:\n")
+
+    query = """
+        SELECT c.customer_id, c.name, c.email,
+               COUNT(DISTINCT s.sale_id) AS anzahl_rechnungen,
+               SUM(si.quantity) AS anzahl_artikel,
+               SUM(si.quantity * si.sale_price) AS umsatz
+        FROM customers c
+        LEFT JOIN sales s ON c.customer_id = s.customer_id
+        LEFT JOIN sale_items si ON s.sale_id = si.sale_id
+        GROUP BY c.customer_id
+        ORDER BY umsatz DESC
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    for row in rows:
+        print(f"{row['name']} ({row['email']})")
+        print(f"  Rechnungen: {row['anzahl_rechnungen']}")
+        print(f"  Artikel gekauft: {row['anzahl_artikel'] or 0}")
+        print(f"  Umsatz: CHF {row['umsatz'] or 0:.2f}\n")
 
 def main_menu():
     while True:
@@ -141,6 +178,7 @@ def main_menu():
         print("3. Verkauf erfassen (Rechnung)")
         print("4. Rechnungen anzeigen")
         print("5. Produkt suchen")
+        print("6. Kundenstatistik anzeigen")
         print("0. Beenden")
 
         choice = input("Auswahl: ")
@@ -154,9 +192,11 @@ def main_menu():
             show_sales()
         elif choice == "5":
             search_product()
+        elif choice == "6":
+            show_customer_stats()
         elif choice == "0":
-            print("Programm beendet – Terminal wird geschlossen...")
-            exit(0)
+            print("Programm beendet.")
+            break
         else:
             print("Ungültige Eingabe.")
 
