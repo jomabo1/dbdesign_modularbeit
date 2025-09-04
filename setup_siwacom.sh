@@ -16,7 +16,7 @@ else
     python3 -m venv "$VENV_DIR"
     source "$VENV_DIR/bin/activate"
     pip install --upgrade pip
-    pip install mysql-connector-python pyfiglet
+    pip install mysql-connector-python
 fi
 
 # Starte CLI-Script

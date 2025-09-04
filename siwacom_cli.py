@@ -1,5 +1,4 @@
 import mysql.connector
-import pyfiglet
 from datetime import datetime
 
 # Datenbankverbindung
@@ -178,8 +177,13 @@ def show_customer_stats():
 
 def main_menu():
     while True:
-        ascii_banner = pyfiglet.figlet_format("SIWACOM")
-        print(ascii_banner)
+        print("""
+   _____ _____       _____   __________  __  ___
+  / ___//  _/ |     / /   | / ____/ __ \/  |/  / 
+  \__ \ / / | | /| / / /| |/ /   / / / / /|_/ /  
+ ___/ // /  | |/ |/ / ___ / /___/ /_/ / /  / /   
+/____/___/  |__/|__/_/  |_\____/\____/_/  /_/    
+        """)
         print("=== Siwacom Lagerverwaltung ===")
         print("1. Alle Produkte anzeigen")
         print("2. Produkt suchen")
@@ -206,7 +210,6 @@ def main_menu():
         elif choice == "5":
             show_sales()
             input("Enter drücken, um ins Menü zurückzukehren...")
-        
         elif choice == "6":
             show_customers()
             input("Enter drücken, um ins Menü zurückzukehren...")
