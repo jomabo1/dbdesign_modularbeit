@@ -158,6 +158,7 @@ def show_sales_statistics():
         print("1. Verkauf Heute")
         print("2. Verkauf Total")
         print("3. Kunden")
+        print("4. Produkte")
         print("0. Zurück")
 
         choice = input("Auswahl: ")
@@ -170,6 +171,9 @@ def show_sales_statistics():
             input("Enter drücken, um zurückzukehren...")
         elif choice == "3":
             show_customer_stats()
+            input("Enter drücken, um zurückzukehren...")
+        elif choice == "4":
+            show_top_products()
             input("Enter drücken, um zurückzukehren...")
         elif choice == "0":
             break
@@ -220,7 +224,7 @@ def show_sales_total():
 
 
 def show_customer_stats():
-    print("\nKundenstatistik:\n")
+    print("\nKunden:\n")
 
     query = """
         SELECT c.customer_id, c.name, c.email,
@@ -241,6 +245,33 @@ def show_customer_stats():
         print(f"  Rechnungen: {row['anzahl_rechnungen']}")
         print(f"  Artikel gekauft: {row['anzahl_artikel'] or 0}")
         print(f"  Umsatz: CHF {row['umsatz'] or 0:.2f}\n")
+        
+def show_top_products():
+    print("\nTop verkaufte Produkte:\n")
+
+    query = """
+        SELECT 
+            p.name, 
+            SUM(si.quantity) AS verkaufte_menge,
+            SUM(si.quantity * si.sale_price) AS umsatz
+        FROM sale_items si
+        JOIN products p ON si.product_id = p.product_id
+        GROUP BY si.product_id
+        ORDER BY verkaufte_menge DESC
+        LIMIT 10
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    if not rows:
+        print("Noch keine Verkäufe erfasst.")
+        return
+
+    for idx, row in enumerate(rows, 1):
+        print(f"{idx}. {row['name']}")
+        print(f"   Verkaufte Menge: {row['verkaufte_menge']}")
+        print(f"   Umsatz: CHF {row['umsatz']:.2f}\n")
+
 
 def main_menu():
     while True:
