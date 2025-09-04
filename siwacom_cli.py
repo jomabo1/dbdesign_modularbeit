@@ -1,4 +1,5 @@
 import mysql.connector
+import pyfiglet
 from datetime import datetime
 
 # Datenbankverbindung
@@ -20,38 +21,8 @@ def show_products():
     rows = cursor.fetchall()
     print("\nProdukte im Lager:")
     for row in rows:
-        print(f"[{row['product_id']}] {row['name']} ({row['category']}) - CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
+        print(f"  [{row['product_id']}] {row['name']} ({row['category']}) - CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
     print()
-
-def search_product():
-    print("\nProdukt suchen")
-    keyword = input("Suchbegriff eingeben (Name oder Beschreibung): ").strip()
-
-    if not keyword:
-        print("Kein Suchbegriff eingegeben.")
-        return
-
-    query = """
-        SELECT p.product_id, p.name, p.description, p.sale_price, p.quantity,
-               c.name AS category, s.name AS supplier
-        FROM products p
-        JOIN categories c ON p.category_id = c.category_id
-        JOIN suppliers s ON p.supplier_id = s.supplier_id
-        WHERE p.name LIKE %s OR p.description LIKE %s
-        ORDER BY p.product_id
-    """
-    search_term = f"%{keyword}%"
-    cursor.execute(query, (search_term, search_term))
-    results = cursor.fetchall()
-
-    if results:
-        print(f"\nGefundene Produkte mit '{keyword}':\n")
-        for row in results:
-            print(f"[{row['product_id']}] {row['name']} ({row['category']} | {row['supplier']})")
-            print(f"    Lager: {row['quantity']} | CHF {row['sale_price']:.2f}")
-            print(f"    Beschreibung: {row['description']}\n")
-    else:
-        print("Keine passenden Produkte gefunden.")
 
 def add_product():
     name = input("Produktname: ")
@@ -63,13 +34,13 @@ def add_product():
     print("\nVerfügbare Kategorien:")
     cursor.execute("SELECT category_id, name FROM categories ORDER BY category_id")
     for cat in cursor.fetchall():
-        print(f"[{cat['category_id']}] {cat['name']}")
+        print(f"  [{cat['category_id']}] {cat['name']}")
     category_id = int(input("Kategorie-ID auswählen: "))
 
     print("\nVerfügbare Lieferanten:")
     cursor.execute("SELECT supplier_id, name FROM suppliers ORDER BY supplier_id")
     for sup in cursor.fetchall():
-        print(f"[{sup['supplier_id']}] {sup['name']}")
+        print(f"  [{sup['supplier_id']}] {sup['name']}")
     supplier_id = int(input("Lieferanten-ID auswählen: "))
 
     warranty = int(input("Garantie (Monate): "))
@@ -116,7 +87,7 @@ def create_sale():
             print("Produkt nicht gefunden.")
             continue
         if result["quantity"] < quantity:
-            print("Nicht genügend Bestand.")
+            print("Nicht genügend Bestand!")
             continue
 
         sale_price = result["sale_price"]
@@ -133,9 +104,11 @@ def show_sales():
     sales = cursor.fetchall()
     print("\nRechnungen:")
     for sale in sales:
-        cursor.execute("SELECT name, email FROM customers WHERE customer_id = %s", (sale["customer_id"],))
+        cursor.execute("SELECT name FROM customers WHERE customer_id = %s", (sale['customer_id'],))
         customer = cursor.fetchone()
-        print(f"Rechnung ID: {sale['sale_id']}, Kunde: {customer['name']}, Datum: {sale['date']}")
+        customer_name = customer["name"] if customer else "Unbekannt"
+
+        print(f"\nRechnung ID: {sale['sale_id']}, Kunde: {customer_name}, Datum: {sale['date']}")
         cursor.execute("""
             SELECT si.quantity, si.sale_price, p.name
             FROM sale_items si
@@ -145,7 +118,40 @@ def show_sales():
         items = cursor.fetchall()
         for item in items:
             print(f"  - {item['quantity']} x {item['name']} à CHF {item['sale_price']:.2f}")
-        print()
+    print()
+
+def search_product():
+    term = input("Suchbegriff eingeben: ").lower()
+    query = """
+        SELECT p.product_id, p.name, p.description, c.name AS category, p.sale_price, p.quantity
+        FROM products p
+        JOIN categories c ON p.category_id = c.category_id
+        WHERE LOWER(p.name) LIKE %s OR LOWER(p.description) LIKE %s
+    """
+    like_term = f"%{term}%"
+    cursor.execute(query, (like_term, like_term))
+    results = cursor.fetchall()
+
+    print("\nSuchergebnisse:")
+    if not results:
+        print("Keine Produkte gefunden.")
+    else:
+        for row in results:
+            print(f"[{row['product_id']}] {row['name']} ({row['category']}) - CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
+    print()
+
+def show_customers():
+    print("\nKundenliste:\n")
+    cursor.execute("SELECT customer_id, name, email FROM customers ORDER BY name")
+    customers = cursor.fetchall()
+
+    if not customers:
+        print("Keine Kunden gefunden.")
+        return
+
+    for cust in customers:
+        print(f"[{cust['customer_id']}] {cust['name']} – {cust['email']}")
+    print()
 
 def show_customer_stats():
     print("\nKundenstatistik:\n")
@@ -171,14 +177,17 @@ def show_customer_stats():
         print(f"  Umsatz: CHF {row['umsatz'] or 0:.2f}\n")
 
 def main_menu():
+    ascii_banner = pyfiglet.figlet_format("SIWACOM")
+    print(ascii_banner)
     while True:
-        print("\n=== Siwacom Lagerverwaltung ===")
+        print("=== Siwacom Lagerverwaltung ===")
         print("1. Produkte anzeigen")
         print("2. Produkt hinzufügen")
         print("3. Verkauf erfassen (Rechnung)")
         print("4. Rechnungen anzeigen")
         print("5. Produkt suchen")
-        print("6. Kundenstatistik anzeigen")
+        print("6. Kunden anzeigen")
+        print("7. Kundenstatistik anzeigen")
         print("0. Beenden")
 
         choice = input("Auswahl: ")
@@ -190,10 +199,15 @@ def main_menu():
             create_sale()
         elif choice == "4":
             show_sales()
+            input("Enter drücken, um fortzufahren...")
         elif choice == "5":
             search_product()
         elif choice == "6":
+            show_customers()
+            input("Enter drücken, um fortzufahren...")
+        elif choice == "7":
             show_customer_stats()
+            input("Enter drücken, um fortzufahren...")
         elif choice == "0":
             print("Programm beendet.")
             break
