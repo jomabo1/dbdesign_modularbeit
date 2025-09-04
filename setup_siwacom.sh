@@ -6,33 +6,32 @@ cd /home/joel/siwacom_lager || exit 1
 green='\033[0;32m'
 reset='\033[0m'
 
-# Begrüßung in ASCII-Art
-echo -e "${green}"
-cat << "EOF"
 
-     _____ _____       _____   __________  __  ___
-  / ___//  _/ |     / /   | / ____/ __ \/  |/  /
-  \__ \ / / | | /| / / /| |/ /   / / / / /|_/ / 
- ___/ // /  | |/ |/ / ___ / /___/ /_/ / /  / /  
-/____/___/  |__/|__/_/  |_\____/\____/_/  /_/   
-                                                                                                             
-EOF
 echo -e "${reset}"
 
 echo -e "${green}Starte die Siwacom Lagerverwaltung...${reset}"
 sleep 1
 
-# Virtuelle Umgebung aktivieren
-if [ -d "/home/joel/venv/siwacom" ]; then
-    source /home/joel/venv/siwacom/bin/activate
+# Virtuelle Umgebung aktivieren oder erstellen
+VENV_DIR="/home/joel/venv/siwacom"
+if [ -d "$VENV_DIR" ]; then
+    source "$VENV_DIR/bin/activate"
 else
-    echo "Virtuelle Umgebung nicht gefunden, erstelle neu..."
-    python3 -m venv /home/joel/venv/siwacom
-    source /home/joel/venv/siwacom/bin/activate
+    echo "Virtuelle Umgebung nicht gefunden – erstelle sie neu..."
+    python3 -m venv "$VENV_DIR"
+    source "$VENV_DIR/bin/activate"
     pip install --upgrade pip
-    pip install mysql-connector-python
+    pip install mysql-connector-python pyfiglet
 fi
 
-# App starten
-python siwacom_cli.py
+# Starte CLI-Script
+if [ -f "siwacom_cli.py" ]; then
+    python siwacom_cli.py
+else
+    echo "Fehler: siwacom_cli.py nicht gefunden!"
+    read -p "Drücke Enter zum Schließen..."
+    exit 1
+fi
 
+# Nachlaufend offen halten
+read -p "Drücke Enter zum Schließen..."

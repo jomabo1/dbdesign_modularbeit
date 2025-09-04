@@ -199,15 +199,12 @@ def main_menu():
             create_sale()
         elif choice == "4":
             show_sales()
-            input("Enter drücken, um fortzufahren...")
         elif choice == "5":
             search_product()
         elif choice == "6":
             show_customers()
-            input("Enter drücken, um fortzufahren...")
         elif choice == "7":
             show_customer_stats()
-            input("Enter drücken, um fortzufahren...")
         elif choice == "0":
             print("Programm beendet.")
             break
