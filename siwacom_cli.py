@@ -282,7 +282,6 @@ def main_menu():
             input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "7":
             show_sales_statistics()
-            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "0":
             print("Programm beendet.")
             break
