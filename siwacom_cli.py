@@ -181,11 +181,11 @@ def main_menu():
         ascii_banner = pyfiglet.figlet_format("SIWACOM")
         print(ascii_banner)
         print("=== Siwacom Lagerverwaltung ===")
-        print("1. Produkte anzeigen")
-        print("2. Produkt hinzufügen")
-        print("3. Verkauf erfassen (Rechnung)")
-        print("4. Rechnungen anzeigen")
-        print("5. Produkt suchen")
+        print("1. Alle Produkte anzeigen")
+        print("2. Produkt suchen")
+        print("3. Produkt hinzufügen")
+        print("4. Verkauf erfassen (Rechnung)")
+        print("5. Rechnungen anzeigen")
         print("6. Kunden anzeigen")
         print("7. Kundenstatistik anzeigen")
         print("0. Beenden")
@@ -195,17 +195,18 @@ def main_menu():
             show_products()
             input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "2":
-            add_product()
-            input("Enter drücken, um ins Menü zurückzukehren...")
-        elif choice == "3":
-            create_sale()
-            input("Enter drücken, um ins Menü zurückzukehren...")
-        elif choice == "4":
-            show_sales()
-            input("Enter drücken, um ins Menü zurückzukehren...")
-        elif choice == "5":
             search_product()
             input("Enter drücken, um ins Menü zurückzukehren...")
+        elif choice == "3":
+            add_product()
+            input("Enter drücken, um ins Menü zurückzukehren...")
+        elif choice == "4":
+            create_sale()
+            input("Enter drücken, um ins Menü zurückzukehren...")
+        elif choice == "5":
+            show_sales()
+            input("Enter drücken, um ins Menü zurückzukehren...")
+        
         elif choice == "6":
             show_customers()
             input("Enter drücken, um ins Menü zurückzukehren...")

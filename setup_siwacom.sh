@@ -2,10 +2,10 @@
 
 cd /home/joel/siwacom_lager || exit 1
 
-#echo -e "${reset}"
+echo -e "${reset}"
 
-#echo -e "${green}Starte die Siwacom Lagerverwaltung...${reset}"
-#sleep 1
+echo -e "${green}Starte die Siwacom Lagerverwaltung...${reset}"
+sleep 1
 
 # Virtuelle Umgebung aktivieren oder erstellen
 VENV_DIR="/home/joel/venv/siwacom"
