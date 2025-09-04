@@ -90,7 +90,8 @@ def create_sale():
         bestand = int(result["quantity"])
         if quantity > bestand:
             print(f"Nicht genügend Bestand! Nur {bestand} Stück verfügbar.")
-            input("Bestellung fortsetzen")
+            print(f"Der Warenkorb wurde nicht verändert")
+            input("Enter drücken, um die Bestellung fortzusetzen")
             continue
 
 
@@ -164,6 +165,7 @@ def show_sales_statistics():
         print("2. Verkauf Total")
         print("3. Kunden")
         print("4. Produkte")
+        print("5. Lieferanten")
         print("0. Zurück")
 
         choice = input("Auswahl: ")
@@ -179,6 +181,9 @@ def show_sales_statistics():
             input("Enter drücken, um zurückzukehren...")
         elif choice == "4":
             show_top_products()
+            input("Enter drücken, um zurückzukehren...")
+        elif choice == "5":
+            show_top_suppliers()
             input("Enter drücken, um zurückzukehren...")
         elif choice == "0":
             break
@@ -276,6 +281,32 @@ def show_top_products():
         print(f"{idx}. {row['name']}")
         print(f"   Verkaufte Menge: {row['verkaufte_menge']}")
         print(f"   Umsatz: CHF {row['umsatz']:.2f}\n")
+        
+def show_top_suppliers():
+    print("\nTop Lieferanten:\n")
+
+    query = """
+        SELECT 
+            s.name AS supplier_name,
+            SUM(si.quantity * si.sale_price) AS umsatz
+        FROM sale_items si
+        JOIN products p ON si.product_id = p.product_id
+        JOIN suppliers s ON p.supplier_id = s.supplier_id
+        GROUP BY s.supplier_id
+        ORDER BY umsatz DESC
+        LIMIT 10
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    if not rows:
+        print("Noch keine Verkäufe erfasst.")
+        return
+
+    for idx, row in enumerate(rows, 1):
+        print(f"{idx}. {row['supplier_name']} – Umsatz: CHF {row['umsatz']:.2f}")
+    print()
+
 
 
 def main_menu():
