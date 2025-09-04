@@ -5,7 +5,7 @@ from datetime import datetime
 conn = mysql.connector.connect(
     host="localhost",
     user="joel",
-    password="joel",  #
+    password="joel",
     database="siwacom_lager"
 )
 cursor = conn.cursor(dictionary=True)
@@ -18,10 +18,41 @@ def show_products():
         ORDER BY p.product_id
     """)
     rows = cursor.fetchall()
-    print("\n📦 Produkte im Lager:")
+    print("\n Produkte im Lager:")
     for row in rows:
         print(f"  [{row['product_id']}] {row['name']} ({row['category']}) - CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
     print()
+
+def search_product():
+    print("\n🔎 Produkt suchen")
+    keyword = input("Suchbegriff eingeben (Name oder Beschreibung): ").strip()
+
+    if not keyword:
+        print(" Kein Suchbegriff eingegeben.")
+        return
+
+    query = """
+        SELECT p.product_id, p.name, p.description, p.sale_price, p.quantity,
+               c.name AS category, s.name AS supplier
+        FROM products p
+        JOIN categories c ON p.category_id = c.category_id
+        JOIN suppliers s ON p.supplier_id = s.supplier_id
+        WHERE p.name LIKE %s OR p.description LIKE %s
+        ORDER BY p.product_id
+    """
+
+    search_term = f"%{keyword}%"
+    cursor.execute(query, (search_term, search_term))
+    results = cursor.fetchall()
+
+    if results:
+        print(f"\n Gefundene Produkte mit '{keyword}':\n")
+        for row in results:
+            print(f"[{row['product_id']}] {row['name']} ({row['category']} | {row['supplier']})")
+            print(f"     Lager: {row['quantity']} |  CHF {row['sale_price']:.2f}")
+            print(f"     {row['description']}\n")
+    else:
+        print("Keine passenden Produkte gefunden.")
 
 def add_product():
     name = input("Produktname: ")
@@ -31,14 +62,14 @@ def add_product():
     quantity = int(input("Anfangsbestand: "))
 
     # Kategorien anzeigen
-    print("\n📂 Verfügbare Kategorien:")
+    print("\nVerfügbare Kategorien:")
     cursor.execute("SELECT category_id, name FROM categories ORDER BY category_id")
     for cat in cursor.fetchall():
         print(f"  [{cat['category_id']}] {cat['name']}")
     category_id = int(input("Kategorie-ID auswählen: "))
 
     # Lieferanten anzeigen
-    print("\n🏢 Verfügbare Lieferanten:")
+    print("\n Verfügbare Lieferanten:")
     cursor.execute("SELECT supplier_id, name FROM suppliers ORDER BY supplier_id")
     for sup in cursor.fetchall():
         print(f"  [{sup['supplier_id']}] {sup['name']}")
@@ -51,7 +82,7 @@ def add_product():
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, (name, description, purchase_price, sale_price, quantity, category_id, supplier_id, warranty))
     conn.commit()
-    print("✅ Produkt hinzugefügt.\n")
+    print("Produkt hinzugefügt.\n")
 
 def create_sale():
     customer_name = input("Kundenname: ")
@@ -70,10 +101,10 @@ def create_sale():
         cursor.execute("SELECT sale_price, quantity FROM products WHERE product_id = %s", (product_id,))
         result = cursor.fetchone()
         if not result:
-            print("❌ Produkt nicht gefunden.")
+            print("Produkt nicht gefunden.")
             continue
         if result["quantity"] < quantity:
-            print("❌ Nicht genügend Bestand!")
+            print("Nicht genügend Bestand!")
             continue
 
         sale_price = result["sale_price"]
@@ -83,12 +114,12 @@ def create_sale():
         """, (sale_id, product_id, quantity, sale_price))
         cursor.execute("UPDATE products SET quantity = quantity - %s WHERE product_id = %s", (quantity, product_id))
         conn.commit()
-        print("✅ Artikel verkauft und Lager aktualisiert.\n")
+        print("Artikel verkauft und Lager aktualisiert.\n")
 
 def show_sales():
     cursor.execute("SELECT * FROM sales ORDER BY date DESC")
     sales = cursor.fetchall()
-    print("\n🧾 Rechnungen:")
+    print("\nRechnungen:")
     for sale in sales:
         print(f"\nRechnung ID: {sale['sale_id']}, Kunde: {sale['customer_name']}, Datum: {sale['date']}")
         cursor.execute("""
@@ -109,6 +140,7 @@ def main_menu():
         print("2. Produkt hinzufügen")
         print("3. Verkauf erfassen (Rechnung)")
         print("4. Rechnungen anzeigen")
+        print("5. Produkt suchen")
         print("0. Beenden")
 
         choice = input("Auswahl: ")
@@ -120,11 +152,13 @@ def main_menu():
             create_sale()
         elif choice == "4":
             show_sales()
+        elif choice == "5":
+            search_product()
         elif choice == "0":
-            print("👋 Programm beendet – Terminal wird geschlossen...")
+            print("Programm beendet – Terminal wird geschlossen...")
             exit(0)
         else:
-            print("❌ Ungültige Eingabe.")
+            print("Ungültige Eingabe.")
 
 if __name__ == "__main__":
     try:
