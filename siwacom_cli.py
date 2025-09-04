@@ -154,10 +154,10 @@ def show_customers():
 
 def show_sales_statistics():
     while True:
-        print("\n=== Verkaufsstatistik anzeigen ===")
-        print("1. Heute")
-        print("2. Total")
-        print("3. Kundenstatistik")
+        print("\n=== Statistiken anzeigen ===")
+        print("1. Verkauf Heute")
+        print("2. Verkauf Total")
+        print("3. Kunden")
         print("0. Zurück")
 
         choice = input("Auswahl: ")
