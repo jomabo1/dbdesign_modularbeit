@@ -2,15 +2,10 @@
 
 cd /home/joel/siwacom_lager || exit 1
 
-# Farben
-green='\033[0;32m'
-reset='\033[0m'
+#echo -e "${reset}"
 
-
-echo -e "${reset}"
-
-echo -e "${green}Starte die Siwacom Lagerverwaltung...${reset}"
-sleep 1
+#echo -e "${green}Starte die Siwacom Lagerverwaltung...${reset}"
+#sleep 1
 
 # Virtuelle Umgebung aktivieren oder erstellen
 VENV_DIR="/home/joel/venv/siwacom"
@@ -32,6 +27,3 @@ else
     read -p "Drücke Enter zum Schließen..."
     exit 1
 fi
-
-# Nachlaufend offen halten
-read -p "Drücke Enter zum Schließen..."

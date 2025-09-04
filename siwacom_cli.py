@@ -177,9 +177,9 @@ def show_customer_stats():
         print(f"  Umsatz: CHF {row['umsatz'] or 0:.2f}\n")
 
 def main_menu():
-    ascii_banner = pyfiglet.figlet_format("SIWACOM")
-    print(ascii_banner)
     while True:
+        ascii_banner = pyfiglet.figlet_format("SIWACOM")
+        print(ascii_banner)
         print("=== Siwacom Lagerverwaltung ===")
         print("1. Produkte anzeigen")
         print("2. Produkt hinzufügen")
@@ -193,18 +193,25 @@ def main_menu():
         choice = input("Auswahl: ")
         if choice == "1":
             show_products()
+            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "2":
             add_product()
+            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "3":
             create_sale()
+            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "4":
             show_sales()
+            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "5":
             search_product()
+            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "6":
             show_customers()
+            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "7":
             show_customer_stats()
+            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "0":
             print("Programm beendet.")
             break
