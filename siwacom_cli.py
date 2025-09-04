@@ -82,12 +82,17 @@ def create_sale():
         quantity = int(input("Menge: "))
         cursor.execute("SELECT sale_price, quantity FROM products WHERE product_id = %s", (product_id,))
         result = cursor.fetchone()
-        if not result:
+
+        if result is None:
             print("Produkt nicht gefunden.")
             continue
-        if result["quantity"] < quantity:
-            print("Nicht genügend Bestand!")
+
+        bestand = int(result["quantity"])
+        if quantity > bestand:
+            print(f"Nicht genügend Bestand! Nur {bestand} Stück verfügbar.")
+            input("Bestellung fortsetzen")
             continue
+
 
         sale_price = result["sale_price"]
         cursor.execute("""
@@ -301,10 +306,8 @@ def main_menu():
             input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "3":
             add_product()
-            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "4":
             create_sale()
-            input("Enter drücken, um ins Menü zurückzukehren...")
         elif choice == "5":
             show_sales()
             input("Enter drücken, um ins Menü zurückzukehren...")
