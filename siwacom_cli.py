@@ -97,7 +97,7 @@ def create_sale():
 
         sale_price = result["sale_price"]
         cursor.execute("""
-            INSERT INTO sale_items (sale_id, product_id, quantity, sale_price)
+            INSERT INTO product_sales (sale_id, product_id, quantity, sale_price)
             VALUES (%s, %s, %s, %s)
         """, (sale_id, product_id, quantity, sale_price))
         cursor.execute("UPDATE products SET quantity = quantity - %s WHERE product_id = %s", (quantity, product_id))
@@ -116,7 +116,7 @@ def show_sales():
         print(f"\nRechnung ID: {sale['sale_id']}, Kunde: {customer_name}, Datum: {sale['date']}")
         cursor.execute("""
             SELECT si.quantity, si.sale_price, p.name
-            FROM sale_items si
+            FROM product_sales si
             JOIN products p ON si.product_id = p.product_id
             WHERE si.sale_id = %s
         """, (sale["sale_id"],))
@@ -198,7 +198,7 @@ def show_sales_today():
             SUM(si.quantity * si.sale_price) AS umsatz,
             SUM(si.quantity * (si.sale_price - p.purchase_price)) AS gewinn
         FROM sales s
-        JOIN sale_items si ON s.sale_id = si.sale_id
+        JOIN product_sales si ON s.sale_id = si.sale_id
         JOIN products p ON si.product_id = p.product_id
         WHERE DATE(s.date) = CURDATE()
     """
@@ -220,7 +220,7 @@ def show_sales_total():
             SUM(si.quantity * si.sale_price) AS umsatz,
             SUM(si.quantity * (si.sale_price - p.purchase_price)) AS gewinn
         FROM sales s
-        JOIN sale_items si ON s.sale_id = si.sale_id
+        JOIN product_sales si ON s.sale_id = si.sale_id
         JOIN products p ON si.product_id = p.product_id
     """
     cursor.execute(query)
@@ -243,7 +243,7 @@ def show_customer_stats():
                SUM(si.quantity * si.sale_price) AS umsatz
         FROM customers c
         LEFT JOIN sales s ON c.customer_id = s.customer_id
-        LEFT JOIN sale_items si ON s.sale_id = si.sale_id
+        LEFT JOIN product_sales si ON s.sale_id = si.sale_id
         GROUP BY c.customer_id
         ORDER BY umsatz DESC
     """
@@ -264,7 +264,7 @@ def show_top_products():
             p.name, 
             SUM(si.quantity) AS verkaufte_menge,
             SUM(si.quantity * si.sale_price) AS umsatz
-        FROM sale_items si
+        FROM product_sales si
         JOIN products p ON si.product_id = p.product_id
         GROUP BY si.product_id
         ORDER BY verkaufte_menge DESC
@@ -289,7 +289,7 @@ def show_top_suppliers():
         SELECT 
             s.name AS supplier_name,
             SUM(si.quantity * si.sale_price) AS umsatz
-        FROM sale_items si
+        FROM product_sales si
         JOIN products p ON si.product_id = p.product_id
         JOIN suppliers s ON p.supplier_id = s.supplier_id
         GROUP BY s.supplier_id
