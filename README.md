@@ -1,6 +1,6 @@
 # dbdesign_modularbeit
 Modularbeit im Fach Datenbankdesign und BigData an der TEKO Bern
-Test Test
+
 # DB Design Modulararbeit – SIWACOM Lagerverwaltung
 
 Dieses Projekt ist Teil einer Modulararbeit und stellt ein einfaches **Lagerverwaltungssystem für ein ICT-Geschäft** dar.  
