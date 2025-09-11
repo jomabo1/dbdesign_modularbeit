@@ -10,6 +10,7 @@ conn = mysql.connector.connect(
 )
 cursor = conn.cursor(dictionary=True)
 
+# ------------------- Produkte -------------------
 def show_products():
     cursor.execute("""
         SELECT p.product_id, p.name, c.name AS category, p.sale_price, p.quantity
@@ -20,7 +21,8 @@ def show_products():
     rows = cursor.fetchall()
     print("\nProdukte im Lager:")
     for row in rows:
-        print(f"  [{row['product_id']}] {row['name']} ({row['category']}) - CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
+        print(f"  [{row['product_id']}] {row['name']} ({row['category']}) - "
+              f"CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
     print()
 
 def add_product():
@@ -45,12 +47,101 @@ def add_product():
     warranty = int(input("Garantie (Monate): "))
 
     cursor.execute("""
-        INSERT INTO products (name, description, purchase_price, sale_price, quantity, category_id, supplier_id, warranty_months)
+        INSERT INTO products
+            (name, description, purchase_price, sale_price,
+             quantity, category_id, supplier_id, warranty_months)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (name, description, purchase_price, sale_price, quantity, category_id, supplier_id, warranty))
+    """, (name, description, purchase_price, sale_price,
+          quantity, category_id, supplier_id, warranty))
     conn.commit()
     print("Produkt hinzugefügt.\n")
 
+def edit_product():
+    show_products()
+    try:
+        product_id = int(input("Produkt-ID zum Bearbeiten (0 = Abbrechen): "))
+    except ValueError:
+        print("Ungültige Eingabe.")
+        return
+    if product_id == 0:
+        return
+
+    cursor.execute("SELECT * FROM products WHERE product_id = %s", (product_id,))
+    product = cursor.fetchone()
+    if not product:
+        print("Produkt nicht gefunden.")
+        return
+
+    print("\n--- Produkt bearbeiten ---")
+    name = input(f"Name [{product['name']}]: ") or product['name']
+    description = input(f"Beschreibung [{product['description']}]: ") or product['description']
+    purchase_price = input(f"Einkaufspreis [{product['purchase_price']}]: ")
+    purchase_price = float(purchase_price) if purchase_price else product['purchase_price']
+    sale_price = input(f"Verkaufspreis [{product['sale_price']}]: ")
+    sale_price = float(sale_price) if sale_price else product['sale_price']
+    quantity = input(f"Bestand [{product['quantity']}]: ")
+    quantity = int(quantity) if quantity else product['quantity']
+    warranty = input(f"Garantie (Monate) [{product['warranty_months']}]: ")
+    warranty = int(warranty) if warranty else product['warranty_months']
+
+    cursor.execute("""
+        UPDATE products
+        SET name=%s, description=%s, purchase_price=%s, sale_price=%s,
+            quantity=%s, warranty_months=%s
+        WHERE product_id=%s
+    """, (name, description, purchase_price, sale_price,
+          quantity, warranty, product_id))
+    conn.commit()
+    print("Produkt aktualisiert.\n")
+
+def delete_product():
+    show_products()
+    try:
+        product_id = int(input("Produkt-ID zum Löschen (0 = Abbrechen): "))
+    except ValueError:
+        print("Ungültige Eingabe.")
+        return
+    if product_id == 0:
+        return
+
+    cursor.execute("SELECT name FROM products WHERE product_id = %s", (product_id,))
+    product = cursor.fetchone()
+    if not product:
+        print("Produkt nicht gefunden.")
+        return
+
+    confirm = input(f"Sind Sie sicher, dass Sie '{product['name']}' löschen wollen? (j/n): ")
+    if confirm.lower() != "j":
+        print("Abgebrochen.")
+        return
+
+    cursor.execute("DELETE FROM products WHERE product_id = %s", (product_id,))
+    conn.commit()
+    print("Produkt gelöscht.\n")
+
+def search_product():
+    term = input("Suchbegriff eingeben: ").lower()
+    query = """
+        SELECT p.product_id, p.name, p.description,
+               c.name AS category, p.sale_price, p.quantity
+        FROM products p
+        JOIN categories c ON p.category_id = c.category_id
+        WHERE LOWER(p.name) LIKE %s OR LOWER(p.description) LIKE %s
+    """
+    like_term = f"%{term}%"
+    cursor.execute(query, (like_term, like_term))
+    results = cursor.fetchall()
+
+    print("\nSuchergebnisse:")
+    if not results:
+        print("Keine Produkte gefunden.")
+    else:
+        for row in results:
+            print(f"[{row['product_id']}] {row['name']} ({row['category']}) - "
+                  f"CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
+    print()
+
+# ------------------- Verkauf -------------------
 def create_sale():
     print("\nKundenverwaltung")
     email = input("Kunden-E-Mail eingeben: ").strip()
@@ -90,20 +181,21 @@ def create_sale():
         bestand = int(result["quantity"])
         if quantity > bestand:
             print(f"Nicht genügend Bestand! Nur {bestand} Stück verfügbar.")
-            print(f"Der Warenkorb wurde nicht verändert")
+            print("Der Warenkorb wurde nicht verändert")
             input("Enter drücken, um die Bestellung fortzusetzen")
             continue
-
 
         sale_price = result["sale_price"]
         cursor.execute("""
             INSERT INTO product_sales (sale_id, product_id, quantity, sale_price)
             VALUES (%s, %s, %s, %s)
         """, (sale_id, product_id, quantity, sale_price))
-        cursor.execute("UPDATE products SET quantity = quantity - %s WHERE product_id = %s", (quantity, product_id))
+        cursor.execute("UPDATE products SET quantity = quantity - %s WHERE product_id = %s",
+                       (quantity, product_id))
         conn.commit()
         print("Artikel verkauft und Lager aktualisiert.\n")
 
+# ------------------- Anzeigen -------------------
 def show_sales():
     cursor.execute("SELECT * FROM sales ORDER BY date DESC")
     sales = cursor.fetchall()
@@ -125,26 +217,6 @@ def show_sales():
             print(f"  - {item['quantity']} x {item['name']} à CHF {item['sale_price']:.2f}")
     print()
 
-def search_product():
-    term = input("Suchbegriff eingeben: ").lower()
-    query = """
-        SELECT p.product_id, p.name, p.description, c.name AS category, p.sale_price, p.quantity
-        FROM products p
-        JOIN categories c ON p.category_id = c.category_id
-        WHERE LOWER(p.name) LIKE %s OR LOWER(p.description) LIKE %s
-    """
-    like_term = f"%{term}%"
-    cursor.execute(query, (like_term, like_term))
-    results = cursor.fetchall()
-
-    print("\nSuchergebnisse:")
-    if not results:
-        print("Keine Produkte gefunden.")
-    else:
-        for row in results:
-            print(f"[{row['product_id']}] {row['name']} ({row['category']}) - CHF {row['sale_price']:.2f} - Bestand: {row['quantity']}")
-    print()
-
 def show_customers():
     print("\nKundenliste:\n")
     cursor.execute("SELECT customer_id, name, email FROM customers ORDER BY name")
@@ -156,6 +228,119 @@ def show_customers():
 
     for cust in customers:
         print(f"[{cust['customer_id']}] {cust['name']} – {cust['email']}")
+    print()
+
+# ------------------- Statistiken -------------------
+def show_sales_today():
+    print("\nVerkäufe heute:\n")
+    query = """
+        SELECT 
+            SUM(si.quantity) AS menge,
+            SUM(si.quantity * si.sale_price) AS umsatz,
+            SUM(si.quantity * (si.sale_price - p.purchase_price)) AS gewinn
+        FROM sales s
+        JOIN product_sales si ON s.sale_id = si.sale_id
+        JOIN products p ON si.product_id = p.product_id
+        WHERE DATE(s.date) = CURDATE()
+    """
+    cursor.execute(query)
+    result = cursor.fetchone()
+    menge = result['menge'] or 0
+    umsatz = result['umsatz'] or 0
+    gewinn = result['gewinn'] or 0
+    print(f"Verkaufte Artikel (heute): {menge}")
+    print(f"Umsatz (heute): CHF {umsatz:.2f}")
+    print(f"Gewinn (heute): CHF {gewinn:.2f}")
+
+def show_sales_total():
+    print("\nVerkäufe Total:\n")
+    query = """
+        SELECT 
+            SUM(si.quantity) AS menge,
+            SUM(si.quantity * si.sale_price) AS umsatz,
+            SUM(si.quantity * (si.sale_price - p.purchase_price)) AS gewinn
+        FROM sales s
+        JOIN product_sales si ON s.sale_id = si.sale_id
+        JOIN products p ON si.product_id = p.product_id
+    """
+    cursor.execute(query)
+    result = cursor.fetchone()
+    menge = result['menge'] or 0
+    umsatz = result['umsatz'] or 0
+    gewinn = result['gewinn'] or 0
+    print(f"Verkaufte Artikel (gesamt): {menge}")
+    print(f"Gesamtumsatz: CHF {umsatz:.2f}")
+    print(f"Gesamtgewinn: CHF {gewinn:.2f}")
+
+def show_customer_stats():
+    print("\nKunden:\n")
+    query = """
+        SELECT c.customer_id, c.name, c.email,
+               COUNT(DISTINCT s.sale_id) AS anzahl_rechnungen,
+               SUM(si.quantity) AS anzahl_artikel,
+               SUM(si.quantity * si.sale_price) AS umsatz
+        FROM customers c
+        LEFT JOIN sales s ON c.customer_id = s.customer_id
+        LEFT JOIN product_sales si ON s.sale_id = si.sale_id
+        GROUP BY c.customer_id
+        ORDER BY umsatz DESC
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    for row in rows:
+        print(f"{row['name']} ({row['email']})")
+        print(f"  Rechnungen: {row['anzahl_rechnungen']}")
+        print(f"  Artikel gekauft: {row['anzahl_artikel'] or 0}")
+        print(f"  Umsatz: CHF {row['umsatz'] or 0:.2f}\n")
+
+def show_top_products():
+    print("\nTop verkaufte Produkte:\n")
+    query = """
+        SELECT 
+            p.name, 
+            SUM(si.quantity) AS verkaufte_menge,
+            SUM(si.quantity * si.sale_price) AS umsatz
+        FROM product_sales si
+        JOIN products p ON si.product_id = p.product_id
+        GROUP BY si.product_id
+        ORDER BY verkaufte_menge DESC
+        LIMIT 10
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    if not rows:
+        print("Noch keine Verkäufe erfasst.")
+        return
+
+    for idx, row in enumerate(rows, 1):
+        print(f"{idx}. {row['name']}")
+        print(f"   Verkaufte Menge: {row['verkaufte_menge']}")
+        print(f"   Umsatz: CHF {row['umsatz']:.2f}\n")
+
+def show_top_suppliers():
+    print("\nTop Lieferanten:\n")
+    query = """
+        SELECT 
+            s.name AS supplier_name,
+            SUM(si.quantity * si.sale_price) AS umsatz
+        FROM product_sales si
+        JOIN products p ON si.product_id = p.product_id
+        JOIN suppliers s ON p.supplier_id = s.supplier_id
+        GROUP BY s.supplier_id
+        ORDER BY umsatz DESC
+        LIMIT 10
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    if not rows:
+        print("Noch keine Verkäufe erfasst.")
+        return
+
+    for idx, row in enumerate(rows, 1):
+        print(f"{idx}. {row['supplier_name']} – Umsatz: CHF {row['umsatz']:.2f}")
     print()
 
 def show_sales_statistics():
@@ -190,125 +375,7 @@ def show_sales_statistics():
         else:
             print("Ungültige Eingabe.")
 
-def show_sales_today():
-    print("\nVerkäufe heute:\n")
-    query = """
-        SELECT 
-            SUM(si.quantity) AS menge,
-            SUM(si.quantity * si.sale_price) AS umsatz,
-            SUM(si.quantity * (si.sale_price - p.purchase_price)) AS gewinn
-        FROM sales s
-        JOIN product_sales si ON s.sale_id = si.sale_id
-        JOIN products p ON si.product_id = p.product_id
-        WHERE DATE(s.date) = CURDATE()
-    """
-    cursor.execute(query)
-    result = cursor.fetchone()
-    menge = result['menge'] or 0
-    umsatz = result['umsatz'] or 0
-    gewinn = result['gewinn'] or 0
-    print(f"Verkaufte Artikel (heute): {menge}")
-    print(f"Umsatz (heute): CHF {umsatz:.2f}")
-    print(f"Gewinn (heute): CHF {gewinn:.2f}")
-
-
-def show_sales_total():
-    print("\nVerkäufe Total:\n")
-    query = """
-        SELECT 
-            SUM(si.quantity) AS menge,
-            SUM(si.quantity * si.sale_price) AS umsatz,
-            SUM(si.quantity * (si.sale_price - p.purchase_price)) AS gewinn
-        FROM sales s
-        JOIN product_sales si ON s.sale_id = si.sale_id
-        JOIN products p ON si.product_id = p.product_id
-    """
-    cursor.execute(query)
-    result = cursor.fetchone()
-    menge = result['menge'] or 0
-    umsatz = result['umsatz'] or 0
-    gewinn = result['gewinn'] or 0
-    print(f"Verkaufte Artikel (gesamt): {menge}")
-    print(f"Gesamtumsatz: CHF {umsatz:.2f}")
-    print(f"Gesamtgewinn: CHF {gewinn:.2f}")
-
-
-def show_customer_stats():
-    print("\nKunden:\n")
-
-    query = """
-        SELECT c.customer_id, c.name, c.email,
-               COUNT(DISTINCT s.sale_id) AS anzahl_rechnungen,
-               SUM(si.quantity) AS anzahl_artikel,
-               SUM(si.quantity * si.sale_price) AS umsatz
-        FROM customers c
-        LEFT JOIN sales s ON c.customer_id = s.customer_id
-        LEFT JOIN product_sales si ON s.sale_id = si.sale_id
-        GROUP BY c.customer_id
-        ORDER BY umsatz DESC
-    """
-    cursor.execute(query)
-    rows = cursor.fetchall()
-
-    for row in rows:
-        print(f"{row['name']} ({row['email']})")
-        print(f"  Rechnungen: {row['anzahl_rechnungen']}")
-        print(f"  Artikel gekauft: {row['anzahl_artikel'] or 0}")
-        print(f"  Umsatz: CHF {row['umsatz'] or 0:.2f}\n")
-        
-def show_top_products():
-    print("\nTop verkaufte Produkte:\n")
-
-    query = """
-        SELECT 
-            p.name, 
-            SUM(si.quantity) AS verkaufte_menge,
-            SUM(si.quantity * si.sale_price) AS umsatz
-        FROM product_sales si
-        JOIN products p ON si.product_id = p.product_id
-        GROUP BY si.product_id
-        ORDER BY verkaufte_menge DESC
-        LIMIT 10
-    """
-    cursor.execute(query)
-    rows = cursor.fetchall()
-
-    if not rows:
-        print("Noch keine Verkäufe erfasst.")
-        return
-
-    for idx, row in enumerate(rows, 1):
-        print(f"{idx}. {row['name']}")
-        print(f"   Verkaufte Menge: {row['verkaufte_menge']}")
-        print(f"   Umsatz: CHF {row['umsatz']:.2f}\n")
-        
-def show_top_suppliers():
-    print("\nTop Lieferanten:\n")
-
-    query = """
-        SELECT 
-            s.name AS supplier_name,
-            SUM(si.quantity * si.sale_price) AS umsatz
-        FROM product_sales si
-        JOIN products p ON si.product_id = p.product_id
-        JOIN suppliers s ON p.supplier_id = s.supplier_id
-        GROUP BY s.supplier_id
-        ORDER BY umsatz DESC
-        LIMIT 10
-    """
-    cursor.execute(query)
-    rows = cursor.fetchall()
-
-    if not rows:
-        print("Noch keine Verkäufe erfasst.")
-        return
-
-    for idx, row in enumerate(rows, 1):
-        print(f"{idx}. {row['supplier_name']} – Umsatz: CHF {row['umsatz']:.2f}")
-    print()
-
-
-
+# ------------------- Hauptmenü -------------------
 def main_menu():
     while True:
         print("""
@@ -322,10 +389,12 @@ def main_menu():
         print("1. Alle Produkte anzeigen")
         print("2. Produkt suchen")
         print("3. Produkt hinzufügen")
-        print("4. Neue Rechnung erfassen")
-        print("5. Bestehende Rechnungen anzeigen")
-        print("6. Kunden anzeigen")
-        print("7. Statistiken anzeigen")
+        print("4. Produkt bearbeiten")
+        print("5. Produkt löschen")
+        print("6. Neue Rechnung erfassen")
+        print("7. Bestehende Rechnungen anzeigen")
+        print("8. Kunden anzeigen")
+        print("9. Statistiken anzeigen")
         print("0. Beenden")
 
         choice = input("Auswahl: ")
@@ -338,14 +407,18 @@ def main_menu():
         elif choice == "3":
             add_product()
         elif choice == "4":
-            create_sale()
+            edit_product()
         elif choice == "5":
+            delete_product()
+        elif choice == "6":
+            create_sale()
+        elif choice == "7":
             show_sales()
             input("Enter drücken, um ins Menü zurückzukehren...")
-        elif choice == "6":
+        elif choice == "8":
             show_customers()
             input("Enter drücken, um ins Menü zurückzukehren...")
-        elif choice == "7":
+        elif choice == "9":
             show_sales_statistics()
         elif choice == "0":
             print("Programm beendet.")
@@ -353,6 +426,7 @@ def main_menu():
         else:
             print("Ungültige Eingabe.")
 
+# ------------------- Start -------------------
 if __name__ == "__main__":
     try:
         main_menu()
